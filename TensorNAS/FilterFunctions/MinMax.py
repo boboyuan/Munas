@@ -1,5 +1,5 @@
-def MinMaxArray(fitnesses, vectors, minOrMax):
 
+def MinMaxArray(fitnesses, vectors, minOrMax):
     ret = []
 
     goal_vectors, normalization_vectors = vectors

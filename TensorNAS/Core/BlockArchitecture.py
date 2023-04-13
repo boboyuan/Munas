@@ -404,18 +404,25 @@ class ClassificationBlockArchitecture(BlockArchitecture):
         import tensorflow as tf
         import keras.backend as K
         from keras_flops import get_flops
-        accuracy= model.evaluate(x=x,batch_size=batch_size,verbose=verbose,steps=steps,callbacks=callbacks)[1]*100
-        run_meta = tf.compat.v1.RunMetadata()
-        opts = tf.compat.v1.profiler.ProfileOptionBuilder.float_operation()
+        from Demos import get_global
+        return_array=[]
+        for criteria in get_global("vectorList"):
+            if criteria== "Acc":   
+                accuracy= model.evaluate(x=x,batch_size=batch_size,verbose=verbose,steps=steps,callbacks=callbacks)[1]*100
+                return_array.append(accuracy)
+            if criteria== "Flops":
+                run_meta = tf.compat.v1.RunMetadata()
+                opts = tf.compat.v1.profiler.ProfileOptionBuilder.float_operation()
+                # We use the Keras session graph in the call to the profiler.
+                flops = tf.compat.v1.profiler.profile(graph=K.get_session().graph,
+                                        run_meta=run_meta, cmd='op', options=opts)
+                print("Model FLOPs:", flops.total_float_ops)
+                print(x,batch_size,steps,callbacks)
+                flops=get_flops(model,batch_size)
+                return_array.append(flops)
 
-        # We use the Keras session graph in the call to the profiler.
-        flops = tf.compat.v1.profiler.profile(graph=K.get_session().graph,
-                                run_meta=run_meta, cmd='op', options=opts)
-
-        print("Model FLOPs:", flops.total_float_ops)
-        print(x,batch_size,steps,callbacks)
-        flops=get_flops(model,batch_size)
-        return accuracy, flops
+        
+        return return_array
 
     def evaluate(
         self,

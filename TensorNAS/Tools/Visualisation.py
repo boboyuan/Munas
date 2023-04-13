@@ -13,9 +13,10 @@ class IndividualRecord:
     def add_gen(self, gen):
         self.gens.append([])
         for ind in gen:
+            temp_array= deepcopy(ind.block_architecture.parameter)
+            temp_array.extend(ind.fitness.values)
             self.gens [self.gen_count].append( 
-                (deepcopy(ind.block_architecture.parameter),
-                ind.fitness.values)
+                (temp_array)
             )
         self.gen_count += 1
 
@@ -28,18 +29,31 @@ class IndividualRecord:
         fig, axes = plt.subplots(
             plot_rows, 2, sharey=True, sharex=True, figsize=(20, 10 * plot_rows)
         )
+
         if title:
             if comment:
                 title = title + "_{}".format(comment)
             fig.suptitle(title)
         for i in range(0, self.gen_count, gen_interval):
+            
             try:
+                data=[]                                 #0 to n-2: data, n-1:  goal
+
                 subplot_num = i // gen_interval
                 sx = subplot_num // 2
                 sy = subplot_num % 2
-                datax, datay, datay2, goal = map(list, zip(*self.gens[i]))
-                axes[sx, sy].scatter(datax, datay)
-                axes[sx, sy].scatter(datax, datay2)
+                j=0
+                while j < len(self.gens):
+                    temp_array=[]
+                    for single_data in self.gens[i]:
+                        temp_array.append(single_data[j])
+                    data.append(temp_array)
+                    j+=1
+                data1,data2,data3,goal = map(list, zip(*self.gens[i]))
+                indicator=0
+                while indicator < len(data)-2:
+                    axes[sx, sy].scatter(data[0], data[indicator+1])
+                    indicator += 1
                 axes[sx, sy].set_title("Gen {}, count: {}".format(i, len(self.gens[i])))
                 axes[sx, sy].set(xlabel="Param Count", ylabel="Accuracy")
             except Exception as e:
@@ -62,13 +76,15 @@ class IndividualRecord:
         fig.set_size_inches(20, 8 * plot_cols)
 
         goals = []
-        from statistics import mean
+        data=[]                                 #0 to n-2: data, n-1:  goal
 
+        from statistics import mean
+        
         for i in range(0, self.gen_count, gen_interval):
             try:
-                datay, datax, datay2, goal = map(list, zip(*self.gens[i]))
-
-                goals += [(i, mean(g)) for g in goal]
+                for single_data in self.gens[i]:
+                    data.append(list(zip(single_data)))
+                goals += [(i, g) for g in data[-1]]
             except Exception as e:
                 pass
 
@@ -96,22 +112,34 @@ class IndividualRecord:
 
     def pareto(self, test_name):
         from Demos import get_global
-
+        minOrMax= get_global("minOrMax")
         filter_funcs = get_global("filter_function_args")
 
         individuals = [list(ind) for ind in self.gens[-1]]              #last model
-        best_models = [
-            [param_count, 0,10000000000]
-            for param_count in list(set([ind[0] for ind in individuals]))
-        ]
+        minOrMax=get_global("minOrMax")
+        best_models=[[]]
+        for value in minOrMax:
+            if value==0:
+                best_models[0].append(10000000000)
+            else:
+                best_models[0].append(0)
+        i=0
+        for param_count in list(set([ind[0] for ind in individuals])):
+            best_models[0][i]= param_count 
+            i+=1
         best_models.sort(key=lambda x: x[0])
-
         for ind in individuals:
-            bm_index = [pcount for (pcount, acc, flops) in best_models].index(ind[0])
-            if ind[1] > best_models[bm_index][1]:
-                best_models[bm_index][1] = ind[1]
-            if ind[2] < best_models[bm_index][2]:
-                best_models[bm_index][2] = ind[2]
+            bm_index = [pcount for (pcount, acc) in best_models].index(ind[0])      #improve this
+            i=1
+            while i < len(best_models[0]):
+                if minOrMax[i] == 1:
+                    if ind[i] > best_models[bm_index][i]:
+                        best_models[bm_index][i] = ind[i]
+                else:
+                    if ind[i] < best_models[bm_index][i]:
+                        best_models[bm_index][i] = ind[i]
+                
+                i+=1
 
         pareto_inds = [best_models[0]]
 
@@ -121,95 +149,77 @@ class IndividualRecord:
 
             for existing_ind in pareto_inds:
 
-                if a_dominates_b(existing_ind, ind_to_compare) or (
+                if a_dominates_b(existing_ind, ind_to_compare, minOrMax) or (
                     set(ind_to_compare) == set(existing_ind)
                 ):
 
                     is_dominated = True
                     break
 
-                elif a_dominates_b(ind_to_compare, existing_ind):
+                elif a_dominates_b(ind_to_compare, existing_ind, minOrMax):
                     pareto_inds.remove(existing_ind)
 
             if is_dominated:
                 continue
             else:
                 pareto_inds.append(ind_to_compare)
-
-        pareto_x = [ind[0] for ind in pareto_inds]
-        pareto_y = [ind[1] for ind in pareto_inds]
-        pareto_y2= [ind[2] for ind in pareto_inds]
-
+        pareto=[]
+        i=0
+        while i< len(pareto_inds[0]):
+            temp_pareto= [ind[i] for ind in pareto_inds]
+            pareto.append(temp_pareto)
+            i+=1
+        pareto=list(pareto)
         import matplotlib.backends.backend_agg as agg
         import matplotlib.figure
 
         fig = matplotlib.figure.Figure(figsize=(45, 15))
         agg.FigureCanvasAgg(fig)
+        ax=[]
+        i=0
+        graph_types = 3                            # 3 different graph types "Population", "Best for each Param Count", "pareto Front"
+        
+        pop_graph=1
+        param_graph=2
+        pareto_graph=3
+        graph_colors=[[0.7,0.7,0.7],[0.3,0.7,0.7]]      #color of each point
+        top_limit=[100,100000000]
+        i=0
+        while i<(len(ind)-2):
+            ax = fig.add_subplot(2, 3, i*3+pop_graph)
+            ax.title.set_text("Population")
+            ax.set_ylim(bottom=0, top=100)
+            ax.scatter(
+                [ind[0] for ind in individuals],
+                [ind[i+1] for ind in individuals],
+                facecolor=(graph_colors[i][0],graph_colors[i][1],graph_colors[i][2]),
+                zorder=-1,
+            )
+            for ff in filter_funcs[0]:
+                m = -filter_funcs[1][0][i+1] / filter_funcs[1][0][0]
+                c = ff[1] - (m * ff[0])
+                y_point = [0, c]
+                x_point = [-c / m, 0]
+                ax.plot(ff[0], ff[1], "go")
+                ax.plot(x_point, y_point)
+            ax = fig.add_subplot(2, 3, i*3+param_graph)
+            ax.set_xscale("log")
+            ax.title.set_text("Best for Each Param Count")
+            ax.set_ylim(bottom=0, top=top_limit[i])
+            ax.scatter(
+                [ind[0] for ind in best_models],
+                [ind[i+1] for ind in best_models],
+                facecolor=(graph_colors[i][0],graph_colors[i][1],graph_colors[i][2]),
+                zorder=-1,
+            )
+            ax = fig.add_subplot(2, 3, i*3+pareto_graph)
+            ax.plot(pareto[0],pareto[i+1])
+            ax.scatter(pareto[0],pareto[i+1], facecolor=(graph_colors[i][0],graph_colors[i][1],graph_colors[i][2]), zorder=-1)
+            ax.title.set_text("Pareto Front")
+            ax.set_ylim(bottom=0, top=top_limit[i])   
+            i+=1 
 
-        ax = fig.add_subplot(2, 3, 1)
-        ax.title.set_text("Population")
-        ax.set_ylim(bottom=0, top=100)
-        ax.scatter(
-            [ind[0] for ind in individuals],
-            [ind[1] for ind in individuals],
-            facecolor=(0.7, 0.7, 0.7),
-            zorder=-1,
-        ) 
-        ax2 = fig.add_subplot(2, 3, 4)
-        ax2.title.set_text("Population")
-        ax2.set_ylim(bottom=0, top=100000000)
-        ax2.scatter(
-            [ind[0] for ind in individuals],
-            [ind[2] for ind in individuals],
-            facecolor=(0.3, 0.7, 0.7),
-            zorder=-1,
-        )
-        for ff in filter_funcs[0]:
-            m = -filter_funcs[1][0][1] / filter_funcs[1][0][0]
-            c = ff[1] - (m * ff[0])
-            y_point = [0, c]
-            x_point = [-c / m, 0]
-            ax.plot(ff[0], ff[1], "go")
-            ax.plot(x_point, y_point)
-        for ff in filter_funcs[0]:
-            m = -filter_funcs[1][0][2] / filter_funcs[1][0][0]
-            c = ff[2] - (m * ff[0])
-            y_point = [0, c]
-            x_point = [-c / m, 0]
-            ax2.plot(ff[0], ff[2], "go")
-            ax2.plot(x_point, y_point)
-
-        ax = fig.add_subplot(2, 3, 2)
-        ax.set_xscale("log")
-        ax.title.set_text("Best for Each Param Count")
-        ax.set_ylim(bottom=0, top=100)
-        ax.scatter(
-            [ind[0] for ind in best_models],
-            [ind[1] for ind in best_models],
-            facecolor=(0.7, 0.7, 0.7),
-            zorder=-1,
-        )
-        ax2 = fig.add_subplot(2, 3, 5)
-        ax2.set_xscale("log")
-        ax2.title.set_text("Best for Each Param Count")
-        ax2.set_ylim(bottom=0, top=100000000)
-        ax2.scatter(
-            [ind[0] for ind in best_models],
-            [ind[2] for ind in best_models],
-            facecolor=(0.3, 0.7, 0.7),
-            zorder=-1,
-        )
-
-        ax = fig.add_subplot(2, 3, 3)
-        ax.plot(pareto_x, pareto_y)
-        ax.scatter(pareto_x, pareto_y, facecolor=(0.7, 0.7, 0.7), zorder=-1)
-        ax.title.set_text("Pareto Front")
-        ax.set_ylim(bottom=0, top=100)
-        ax2 = fig.add_subplot(2, 3, 6)
-        ax2.plot(pareto_x, pareto_y2)
-        ax2.scatter(pareto_x, pareto_y2, facecolor=(0.3, 0.7, 0.7), zorder=-1)
-        ax2.title.set_text("Pareto Front")
-        ax2.set_ylim(bottom=0, top=100000000)
+    
         # ax.set_xscale("log")
         
 
@@ -222,22 +232,20 @@ class IndividualRecord:
         return pareto_inds
 
 
-def a_dominates_b(a, b):
-
+def a_dominates_b(a, b, minOrMax):
     n_better = 0
 
     # First index is parameter count, thus we want a[0] < b[0]
-    if a[0] < b[0]:
-        n_better += 1
+    index=0
+    while index < min(len(a),len(b)):
+        if minOrMax == 0:
+            if a[index] < b[index]:
+                n_better += 1
+        index +=1
 
     # Second index is accuracy, thus we want a[1] > b[1]
-    if a[1] > b[1]:
-        n_better += 1
 
-    if a[2] < b[2]:
-        n_better +=1
-
-    if n_better == 2:
+    if n_better == min(len(a),len(b)):
         return True
 
     return False

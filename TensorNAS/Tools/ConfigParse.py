@@ -1,8 +1,6 @@
-vector_list=["Param", "Acc", "Flops"]           #change vector list for new value
 
 n= []
 
-minOrMax=[0,1,0]
 
 def GetConfigFile(config_filename=None, directory=None):
     ###
@@ -527,6 +525,8 @@ def GetFilterFunctionArgs(config):
     g_end={}
     if _GetVariableGoal(config):
         # Goal vector varies, normilization vector is static
+        from Demos import get_global
+        vector_list=get_global("vectorList")
         for i in vector_list:
             g_start[i]=_GetGoalStartVector(config,i)
             g_end[i]=_GetGoalEndVector(config,i)

@@ -196,8 +196,9 @@ def eaSimple(
 
     logger.log("This is the logger")
 
-    minOrMax=[0,1,0]
-    raw_row=[["Param Count"], ["Accuracy"], ["Flops"]]         #add here
+    minOrMax=get_global("minOrMax")
+    #raw_row=[["Param Count"], ["Accuracy"], ["Flops"]]         #add here
+    raw_row=[["Param Count"], ["Accuracy"]]
     raw_fitness_row=["Fitness"]
     pop_size = len(population)
     retrain = get_global("retrain_every_generation")
@@ -403,7 +404,6 @@ def eaSimple(
         # Begin the generational process
         for gen in range(start_gen + 1, ngen + 1):
 
-            raw_row=[["Param Count"], ["Accuracy"], ["Flops"]]         #add here
             raw_fitness_row=["Fitness"]
             writer.writerow(["Gen #{}".format(gen)])
 

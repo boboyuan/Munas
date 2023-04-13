@@ -2,6 +2,7 @@ import random
 import re
 from abc import ABC, abstractmethod
 from enum import Enum, auto
+from Demos import get_global
 
 from TensorNAS.Core.Mutate import mutate_enum_i
 
@@ -49,18 +50,22 @@ class MutationTable:
     def __init__(self, cls_obj):
 
         # Class name for debugging purposes
+        self.minOrMax=get_global("minOrMax")
         self.class_name = str(cls_obj.__class__)  # .__bases__
         self.mutations = {}
 
         if hasattr(cls_obj, "mutation_funcs"):
             self.mutation_funs = cls_obj.mutation_funcs
             for func in self.mutation_funs:
-                self.mutations[func] = [0, 0, 0]
+                self.mutations[func] = []
+                for elements in self.minOrMax:
+                    self.mutations[func].append(0)
 
     def get_mutation_table_ref(self, mutation):
 
         if not mutation in self.mutations:
-            self.mutations[mutation] = [0, 0, 0]
+            for elements in self.minOrMax:
+                    self.mutations[mutation].append(0)
 
         ret = self.mutations[mutation]
 
@@ -72,8 +77,11 @@ class MutationTable:
         0 and 1, thus, P = 0.5 * tanh(Q) + 0.5
         """
         from numpy import tanh as th
-
-        q = self.mutations.get(function_name, (0, 0))[index]
+        parameters=[]
+        for elements in self.minOrMax:
+            parameters.append(0)
+        parameters= set(parameters)
+        q = self.mutations.get(function_name, parameters)[index]
 
         ret = 0.5 * th(q) + 0.5
 
