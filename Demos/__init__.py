@@ -215,8 +215,8 @@ def load_globals_from_config(config):
     )
     from TensorNAS.Tools.JSONImportExport import GetBlockMod
 
-    set_global("minOrMax", [0,1])                                     #0= minimize 1= maximize #[0,1,0]
-    set_global("vectorList", ["Param", "Acc"])                        #change vector list for new value #["Param","Acc", "Flops"]
+    set_global("minOrMax", [0,1,0])                                     #0= minimize 1= maximize #[0,1,0]
+    set_global("vectorList", ["Param", "Acc","Flops"])                        #change vector list for new value #["Param","Acc", "Flops"]
     if(len(get_global("minOrMax")) != len(get_global("vectorList"))):
         raise SystemExit("Error: vectorList isn't the same length with minOrMax, which need to be to keep the program running")
     globals()["ba_name"] = GetBlockArchitecture(config)                     #dupe?

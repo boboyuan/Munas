@@ -191,12 +191,12 @@ class IndividualRecord:
         param_graph=2
         pareto_graph=3
         graph_colors=[[0.7,0.7,0.7],[0.3,0.7,0.7]]      #color of each point
-        top_limit=[100,100000000]
+        top_limit=[100,800000000]
         i=0
         while i<(len(ind)-2):
             ax = fig.add_subplot(2, 3, i*3+pop_graph)
             ax.title.set_text("Population")
-            ax.set_ylim(bottom=0, top=100)
+            ax.set_ylim(bottom=0, top=top_limit[i])
             ax.scatter(
                 [ind[0] for ind in individuals],
                 [ind[i+1] for ind in individuals],
@@ -246,8 +246,11 @@ def a_dominates_b(a, b, minOrMax):
     # First index is parameter count, thus we want a[0] < b[0]
     index=0
     while index < min(len(a),len(b)):
-        if minOrMax == 0:
+        if minOrMax[index] == 0:
             if a[index] < b[index]:
+                n_better += 1
+        else:
+            if a[index] > b[index]:
                 n_better += 1
         index +=1
 
