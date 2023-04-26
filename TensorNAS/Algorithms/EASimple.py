@@ -197,8 +197,8 @@ def eaSimple(
     logger.log("This is the logger")
 
     minOrMax=get_global("minOrMax")
-    #raw_row=[["Param Count"], ["Accuracy"], ["Flops"]]         #add here
-    raw_row=[["Param Count"], ["Accuracy"]]
+    raw_row=[["Param Count"], ["Accuracy"]]         #add here
+    #raw_row=[["Param Count"], ["Accuracy"],["Flops"]]
     raw_fitness_row=["Fitness"]
     pop_size = len(population)
     retrain = get_global("retrain_every_generation")

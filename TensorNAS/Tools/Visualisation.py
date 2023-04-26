@@ -43,13 +43,12 @@ class IndividualRecord:
                 sx = subplot_num // 2
                 sy = subplot_num % 2
                 j=0
-                while j < len(self.gens):
+                while j < len(self.gens[0][0]):
                     temp_array=[]
                     for single_data in self.gens[i]:
                         temp_array.append(single_data[j])
                     data.append(temp_array)
                     j+=1
-                data1,data2,data3,goal = map(list, zip(*self.gens[i]))
                 indicator=0
                 while indicator < len(data)-2:
                     axes[sx, sy].scatter(data[0], data[indicator+1])
@@ -117,19 +116,28 @@ class IndividualRecord:
 
         individuals = [list(ind) for ind in self.gens[-1]]              #last model
         minOrMax=get_global("minOrMax")
-        best_models=[[]]
-        for value in minOrMax:
-            if value==0:
-                best_models[0].append(10000000000)
-            else:
-                best_models[0].append(0)
+        best_models=[]
+        
         i=0
         for param_count in list(set([ind[0] for ind in individuals])):
-            best_models[0][i]= param_count 
+            best_models.append([param_count])
+            flag=1
+            for value in minOrMax:
+                if flag==1:
+                    flag=0
+                    continue
+                if value==0:
+                    best_models[i].append(10000000000)
+                else:
+                    best_models[i].append(0)
             i+=1
         best_models.sort(key=lambda x: x[0])
+        pcount=[]
         for ind in individuals:
-            bm_index = [pcount for (pcount, acc) in best_models].index(ind[0])      #improve this
+            for models in best_models:
+                pcount.append(models[0])
+            bm_index=pcount.index(ind[0])
+            #bm_index = [pcount for (pcount, acc) in best_models].index(ind[0])      #improve this
             i=1
             while i < len(best_models[0]):
                 if minOrMax[i] == 1:
